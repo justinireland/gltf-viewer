@@ -1,126 +1,138 @@
-import React from 'react'
+import React, { Component } from 'react'
+import PropTypes from 'prop-types'
 import * as THREE from 'three'
 import GLTFLoader from 'three-gltf-loader'
 import './viewer.css'
 
-const Viewer = () => {
-  const { useRef, useEffect, useState } = React
-  const mount = useRef(null)
-  const [isAnimating, setAnimating] = useState(true)
-  const controls = useRef(null)
-  const sources = [
-    'assets/skull/scene.gltf',
-    'assets/adamHead/adamHead.gltf',
-    'assets/the_noble_craftsman/scene.gltf'
-  ]
-  const activeSource = 0
-    
-  useEffect(() => {
-    let width = mount.current.clientWidth
-    let height = mount.current.clientHeight
-    let frameId
-    
-    const scene = new THREE.Scene()
+class Viewer extends Component {
+  constructor(props){
+    super(props)
+        
+    this.scene = new THREE.Scene()
+    this.mount = React.createRef()
+    this.loader = new GLTFLoader()
+    this.renderer = new THREE.WebGLRenderer({ antialias: true })
+    this.camera = new THREE.PerspectiveCamera(55, 0.5, 0.1, 1000)
 
-    // Camera
-    const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 1000)
-    camera.position.z = 4
-    
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
-    renderer.setClearColor('#000000')
-    renderer.setSize(width, height)
-    renderer.gammaOutput = true
-    renderer.gammaFactor = 2.2
-    
-    // Lights
+    this.state = {
+      width: null,
+      height: null
+    }
+  }
+
+  async componentDidMount() {     
+            
+    this.setupCamera()
+    this.setupLights()
+    await this.loadSource()            
+    await this.updateDims()
+    this.updateCamera()
+    this.setupRenderer()
+    this.renderScene()
+                    
+    this.mount.current.appendChild(this.renderer.domElement)
+    window.addEventListener('resize', this.handleResize) 
+  }
+  
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleResize)
+    this.mount.current.removeChild(this.renderer.domElement)
+  }
+
+  handleResize = async () => {
+    await this.updateDims()
+    this.updateRenderer()
+    this.updateCamera()        
+    this.renderScene()
+  }
+
+  loadSource = () => {
+    return new Promise((resolve, reject) => {
+      this.loader.load(this.props.src, 
+        // onLoad
+        gltf => {
+          this.scene.add(gltf.scene)
+          resolve()
+        },
+        // onProgress
+        xhr => {},
+        // onError
+        err => {
+          console.error('Error loading glTF asset', err)
+          reject()
+        }
+      )
+    })          
+  }
+
+  renderScene = () => {
+    this.renderer.render(this.scene, this.camera)
+  }
+
+  setupCamera = () => {    
+    this.camera.aspect = this.state.width / this.state.height
+    this.camera.position.z = 4
+  }
+
+  setupLights = () => {    
     let hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 )
     hemiLight.position.set( 0, 500, 0 )
-    scene.add(hemiLight)
+    this.scene.add(hemiLight)
 
     let dirLight = new THREE.DirectionalLight(0xffffff, 1)
     dirLight.position.set( -1, 0.75, 1 )
     dirLight.position.multiplyScalar( 50)
     dirLight.name = "dirlight"
-    // dirLight.shadowCameraVisible = true
-
+    
     dirLight.castShadow = true
-    dirLight.shadowMapWidth = dirLight.shadowMapHeight = 1024*2
+    dirLight.shadow.mapSize.width = dirLight.shadow.mapSize.height = 1024*2
 
     const d = 300
-    dirLight.shadowCameraLeft = -d
-    dirLight.shadowCameraRight = d
-    dirLight.shadowCameraTop = d
-    dirLight.shadowCameraBottom = -d
+    dirLight.shadow.camera.left = -d
+    dirLight.shadow.camera.right = d
+    dirLight.shadow.camera.top = d
+    dirLight.shadow.camera.bottom = -d
 
-    dirLight.shadowCameraFar = 3500
-    dirLight.shadowBias = -0.0001
-    dirLight.shadowDarkness = 0.35
+    dirLight.shadow.camera.far = 3500
+    dirLight.shadow.bias = -0.0001
+    
+    this.scene.add(dirLight)
+  }
 
-    scene.add(dirLight)
+  setupRenderer = () => {
+    this.renderer.setClearColor('#000000')
+    this.renderer.setSize(this.state.width, this.state.height)
+    this.renderer.gammaOutput = true
+    this.renderer.gammaFactor = 2.2    
+  }
 
-    // Loader
-    const loader = new GLTFLoader()
-    loader.load(sources[activeSource], 
-      // onLoad
-      gltf => scene.add(gltf.scene),
-      // onProgress
-      xhr => {},
-      // onError
-      err => console.error('Error loading glTF asset', err)
+  updateCamera = () => {
+    this.camera.aspect = this.state.width / this.state.height
+    this.camera.updateProjectionMatrix()
+  }
+
+  updateDims = () => {
+    let width = this.mount.current.offsetWidth
+    let height = this.mount.current.offsetHeight 
+    
+    return new Promise((resolve) => {
+      this.setState({ width, height }, () => resolve())
+    }) 
+  }
+
+  updateRenderer = () => {        
+    this.renderer.setSize(this.state.width, this.state.height)
+  }
+
+  render() {
+    return (
+      <div className="viewer" ref={this.mount} />
     )
-        
-    const renderScene = () => {
-      renderer.render(scene, camera)
-    }
+  }    
+}
 
-    const handleResize = () => {
-      width = mount.current.clientWidth
-      height = mount.current.clientHeight
-      renderer.setSize(width, height)
-      camera.aspect = width / height
-      camera.updateProjectionMatrix()
-      renderScene()
-    }
-    
-    const animate = () => {
-      renderScene()
-      frameId = window.requestAnimationFrame(animate)
-    }
-
-    const start = () => {
-      if (!frameId) {
-        frameId = requestAnimationFrame(animate)
-      }
-    }
-
-    const stop = () => {
-      cancelAnimationFrame(frameId)
-      frameId = null
-    }
-
-    mount.current.appendChild(renderer.domElement)
-    window.addEventListener('resize', handleResize)
-    start()
-
-    controls.current = { start, stop }
-    
-    return () => {
-      stop()
-      window.removeEventListener('resize', handleResize)
-      mount.current.removeChild(renderer.domElement)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (isAnimating) {
-      controls.current.start()
-    } else {
-      controls.current.stop()
-    }
-  }, [isAnimating])
-  
-  return <div className="viewer" ref={mount} onClick={() => setAnimating(!isAnimating)} />
+Viewer.propTypes = {
+  src: PropTypes.string.isRequired
 }
 
 export default Viewer
