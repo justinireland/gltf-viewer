@@ -7911,6 +7911,11 @@ three-gltf-loader@^1.101.0:
   version "1.101.0"
   resolved "https://registry.yarnpkg.com/three-gltf-loader/-/three-gltf-loader-1.101.0.tgz#f6faf959e883101940052aa6930722152977f4f7"
 
+three-pointer-lock-controls@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/three-pointer-lock-controls/-/three-pointer-lock-controls-1.0.0.tgz#54ed4f5dcd83303355244316e2d55d5c76e19023"
+  integrity sha512-4NVBrTk3tdR0cpo2WgJXB22udfkZ7OXh+tOjIzgSfU3a89HHUODKl7eVs9oSTK/7Z/AXoKLHR3a32Hu4uem6EQ==
+
 three@^0.102.0:
   version "0.102.0"
   resolved "https://registry.yarnpkg.com/three/-/three-0.102.0.tgz#b26a7212d95f1ea043ab94598d55973ebe110cbb"

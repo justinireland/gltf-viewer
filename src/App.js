@@ -7,8 +7,8 @@ class App extends Component {
     return (
       <div className="App">
         <div className="row">
-          <Viewer src='assets/skull/scene.gltf' />
-          <Viewer src='assets/skull/scene.gltf' />
+          <Viewer color='#FFFFFF' src='assets/skull/scene.gltf' />
+          <Viewer color='#000000' src='assets/blanko/blanko.glb' />
         </div>        
       </div>
     )
